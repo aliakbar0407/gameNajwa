@@ -123,11 +123,10 @@ body.exam #quiz .why { margin-top: 8px; padding: 8px 10px; font-size: 14px; }
 #btnA.off { background: #9C93B5; box-shadow: 0 6px 0 #6F6788; }
 #btnA.pulse { animation: pulse .9s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(1.08); } }
-#game:not([data-mode="play"]):not([data-mode="mini1"]):not([data-mode="mini2"]) #pad,
-#game:not([data-mode="play"]):not([data-mode="mini1"]):not([data-mode="mini2"]) #padZone,
 #padZone { position: absolute; left: 0; top: 76px; bottom: 0; width: 48%; touch-action: none; }
 #pad { pointer-events: none; }
-#game.pgdummy #pad,
+#game:not([data-mode="play"]):not([data-mode="mini1"]):not([data-mode="mini2"]) #pad,
+#game:not([data-mode="play"]):not([data-mode="mini1"]):not([data-mode="mini2"]) #padZone,
 #game:not([data-mode="play"]):not([data-mode="mini1"]) #btnA { display: none; }
 #game[data-mode="title"] .hud, #game[data-mode="end"] .hud { display: none; }
 #game:not([data-mode="mini1"]):not([data-mode="mini2"]) .exit { display: none; }
@@ -228,6 +227,27 @@ body.exam #quiz .why { margin-top: 8px; padding: 8px 10px; font-size: 14px; }
 #game.short #miniHud { top: 52px; font-size: 15px; padding: 6px 12px; }
 @media (prefers-reduced-motion: reduce) { #btnA.pulse { animation: none; } .conf { display: none; } }
 @media (max-height: 560px) { #pad { width: 112px; height: 112px; } #knob { width: 48px; height: 48px; margin: -24px 0 0 -24px; } #btnA { width: 80px; height: 80px; } }
+
+#guide { z-index: 22; }
+#guideCard { width: min(560px, 100%); display: grid; gap: 10px; }
+.gh { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.gh small { font: 800 14px/1 var(--display); color: var(--muted); }
+.gx { padding: 6px 12px; min-height: 0; font-size: 14px; }
+#guideCard h2 { margin: 0; font: 800 24px/1.1 var(--display); color: var(--purple-d); }
+#guideCard .lead { margin: 0; font-weight: 800; color: var(--ink); }
+.gs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.gs li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; font-weight: 700; font-size: 16px; line-height: 1.3; color: var(--ink); }
+.gs li b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--purple); color: #fff; font: 800 15px/1 var(--display); }
+.gs li.ok b { background: var(--green); }
+.gs li.pt b { background: var(--gold); color: #3A2506; }
+.gdots { display: flex; justify-content: center; gap: 7px; }
+.gdots i { width: 10px; height: 10px; border-radius: 50%; background: #D9CFEA; }
+.gdots i.on { background: var(--purple); width: 22px; border-radius: 6px; }
+.gnav { display: flex; gap: 10px; justify-content: space-between; }
+.gnav .btn { flex: 1; }
+.gh { position: sticky; top: -16px; z-index: 2; background: var(--cream); padding: 2px 0 6px; }
+.gnav { position: sticky; bottom: -16px; z-index: 2; background: var(--cream); padding: 8px 0 2px; box-shadow: 0 -8px 8px -6px rgba(0,0,0,.12); }
+@media (max-height: 560px) { #guideCard { gap: 7px; } #guideCard h2 { font-size: 21px; } .gs li { font-size: 15px; } .gs { gap: 6px; } #guideCard .lead { font-size: 15px; } .gdots { display: none; } }
 </style>
 
 <div id="game" data-mode="title">
@@ -281,6 +301,7 @@ body.exam #quiz .why { margin-top: 8px; padding: 8px 10px; font-size: 14px; }
     </div>
   </div>
   <div class="sheet" id="pgm" hidden><canvas id="pgCv"></canvas><div class="pghud"><b id="pgT"></b><span id="pgS"></span></div><button class="btn ghost" id="pgX" type="button">Keluar</button><div id="pgHelp"></div><div id="pgBtns"></div><div class="pgres" id="pgRes" hidden><div class="card" id="pgCard"></div></div></div>
+  <div class="sheet" id="guide" hidden><div class="card" id="guideCard"></div></div>
   <div class="sheet" id="promo" hidden><div class="card" id="promoCard"></div></div>
 
   <div class="screen" id="title">
@@ -1356,13 +1377,14 @@ function renderMenu() {
     <p class="sub">Cara naik kelas</p>
     <div class="steps"><div><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#5A33A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7a3 3 0 013 3v13a2 2 0 00-2-2H4zM20 4h-6M16 14l5-8"/></svg>Belajar dan kerjakan soal</div><div><svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#F6B92B" stroke="#C98B0A" stroke-width="1.6" stroke-linejoin="round"/></svg>Kumpulkan poin ${NEED[Math.min(G.cls, 6) - 1]}</div><div><svg width="38" height="34" viewBox="0 0 60 40"><path d="M30 4 4 16l26 12 26-12z" fill="#2A2147"/><path d="M14 24v9c8 6 24 6 32 0v-9l-16 7z" fill="#3B2F63"/><path d="M52 18v14" stroke="#F6B92B" stroke-width="3" stroke-linecap="round"/></svg>Ikut ujian naik kelas</div></div>
     <p class="sub">Pengaturan</p>
-    <div class="btnrow"><button class="btn ghost" data-set="music">Musik: ${G.music ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="sound">Efek suara: ${G.sound ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="amb">Suasana ASMR: ${G.amb ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="haptic">Getar: ${G.haptic ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="reset">Mulai dari awal</button></div>`;
+    <div class="btnrow"><button class="btn alt" data-set="guide">Lihat Panduan</button><button class="btn ghost" data-set="music">Musik: ${G.music ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="sound">Efek suara: ${G.sound ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="amb">Suasana ASMR: ${G.amb ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="haptic">Getar: ${G.haptic ? 'hidup' : 'mati'}</button><button class="btn ghost" data-set="reset">Mulai dari awal</button></div>`;
   }
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { sfx('tap'); tab = b.dataset.tab; renderMenu(); } });
 $('#menuBody').addEventListener('click', e => {
   const b = e.target.closest('[data-set]'); if (!b) return; sfx('tap');
   if (['sound', 'music', 'amb', 'haptic'].includes(b.dataset.set)) { const k = b.dataset.set; G[k] = !G[k]; save(); auApply(); renderMenu(); }
+  else if (b.dataset.set === 'guide') { openGuide('menu'); }
   else if (b.dataset.set === 'reset') { if (b.dataset.sure) resetAll(); else { b.dataset.sure = 1; b.textContent = 'Yakin? Ketuk lagi'; } }
 });
 $('#btnMenu').addEventListener('click', () => { if (mode === 'play') { sfx('tap'); openMenu(); } });
@@ -2330,6 +2352,7 @@ window.addEventListener('popstate', () => {
   try { history.pushState({ g: 1 }, ''); } catch (e) {}
   if (mode === 'menu') closeMenu();
   else if (mode === 'closet') { $('#closet').hidden = true; setMode('play'); }
+  else if (mode === 'guide') closeGuide();
   else if (mode === 'dlg') closeDlg();
   else if (mode === 'pg') pgClose();
   else if (mode === 'play') openMenu();
@@ -2699,7 +2722,7 @@ function begin(cont) {
   if (room) leaveRoomNow(); G.started = true; pickStars(); player.x = G.px || SPAWN.x; player.y = G.py || SPAWN.y; if (blocked(player.x, player.y)) { player.x = SPAWN.x; player.y = SPAWN.y; }
   if (cont && G.loc === 'depan' && W3.player) placeIn('depan', DOX + 8.0, 6.3, Math.PI); else G.loc = 'school';
   $('#title').hidden = true; setMode('play'); camYaw = 0; camPos = null; updHud(); updClock(); save();
-  toast(cont ? 'Selamat datang kembali, Najwa!' : 'Geser joystick untuk berjalan. Temui Bu Guru di Ruang Kelas (kiri atas).', 3800);
+  if (cont) toast('Selamat datang kembali, Najwa!', 3800); else openGuide('play');
 }
 $('#btnPlay').addEventListener('click', () => begin(false));
 $('#btnCont').addEventListener('click', () => begin(true));
@@ -2719,6 +2742,54 @@ try { if (hot && hot.snapshot) hot.snapshot(() => ({ G })); } catch (e) {}
 if (hot && hot.data && hot.data.G) { Object.assign(G, hot.data.G); pickStars(); updHud(); }
 
 window.__najwa = { rdr: () => renderer, scn: () => scene, cam: () => camera, room: () => room, exam: () => exam, DOORS, goRoom, enterRoom, goOut, getRoom, leaveRoomNow, dbg: o => { window.__dbgCam = o; }, camYaw: () => camYaw, glOK: () => glOK, AU, qz: () => QZ, m1: () => M1, m2: () => M2, G, NPCS, CHESTS, starSpots: () => starSpots, reach, isSolid, player, trees, setPos: (x, y) => { player.x = x; player.y = y; }, begin, interact, startQuiz, genQs, examQs, B, STN, NEED, mode: () => mode, startMini, tryExam, openMenu, setTab: t => { tab = t; renderMenu(); } };
+
+// ----- panduan bermain
+const GUIDE = [
+  { t: 'Selamat datang di Sekolah Najwa', lead: 'Misi kamu: bantu Najwa belajar dari Kelas 1 sampai Kelas 6 dan lulus SD.', s: [
+    'Berjalan: sentuh separuh kiri layar lalu geser jarimu. Kalau mau berhenti, angkat jari.',
+    'Memutar kamera: geser jari di separuh kanan layar.',
+    'Tombol pink di kanan bawah: dipakai untuk bicara, masuk pintu, atau bermain. Tombol ini menyala kalau ada yang bisa dilakukan di dekatmu.',
+    'Tombol peta di kiri atas: untuk melihat peta, daftar tugas, dan pengaturan.' ] },
+  { t: 'Cara mendapat poin', lead: 'Poin dikumpulkan dari banyak tempat. Poin dipakai untuk ikut ujian naik kelas.', s: [
+    'Temui guru di 7 tempat: Ruang Kelas, Perpustakaan, Kantin, Lab Komputer, Taman, UKS, dan Lapangan.',
+    'Pilih Belajar. Setelah belajar, kamu mendapat poin satu kali di tiap tempat.',
+    'Pilih Kerjakan Soal. Jawaban benar menambah poin. Tiap tempat ada batas poinnya.',
+    'Kumpulkan bintang kuning di jalan, buka peti harta, dan main mini game dari guru yang menawarkannya.' ] },
+  { t: 'Syarat ujian naik kelas', lead: 'Ujian baru bisa diikuti kalau semua syarat ini sudah lengkap:', s: [
+    'Sudah Belajar di semua 7 tempat.',
+    'Sudah Kerjakan Soal di semua 7 tempat, dengan benar minimal 3 dari 5 soal.',
+    'Poin cukup, lihat angka Ujian di pojok kanan atas.',
+    'Temui Bu Guru Rina di Ruang Kelas, lalu pilih Ikut Ujian Naik Kelas. Ujian ada 10 soal, kamu harus benar minimal 7.' ], tip: 'Buka menu Tugas Kelas untuk melihat tempat mana yang belum selesai.' },
+  { t: 'Jam sekolah dan seragam', lead: 'Waktu di dalam game berjalan seperti hari sungguhan, dari Senin sampai Minggu.', s: [
+    'Sekolah buka Senin sampai Sabtu pukul 07.00 sampai 12.00. Hari Minggu libur.',
+    'Belajar, soal, dan ujian hanya bisa pada jam sekolah.',
+    'Waktu berhenti kalau Najwa ada di dalam ruangan, sedang bicara, atau sedang main.',
+    'Seragam berganti tiap hari: Senin dan Selasa hijau putih, Rabu dan Kamis merah muda coklat, Jumat dan Sabtu Pramuka. Najwa dan teman-teman ikut berganti.' ] },
+  { t: 'Pulang dan di rumah', lead: 'Pukul 12.00 bel pulang berbunyi.', s: [
+    'Naik Bus Sekolah di gerbang untuk pulang ke rumah. Pagi harinya naik bus lagi untuk berangkat.',
+    'Di rumah, buka lemari untuk ganti baju, makan bersama keluarga di dapur, dan istirahat atau tidur di kamar. Tidur siang bisa pukul 12.00 sampai 15.00.',
+    'Pukul 15.00 sampai 17.00 ada mengaji di masjid dekat rumah. Kamu belajar bersama Ustadzah dan teman-teman, lalu ada kuis dengan poin ganda.',
+    'Malam hari, tidur di kamar supaya besok pagi segar lagi.' ] },
+  { t: 'Taman bermain dan poin keluar', lead: 'Tidak semua kegiatan menambah poin.', s: [
+    'Taman Bermain ada di antara Kelas dan Perpustakaan: ayunan, jungkat-jungkit, komidi putar, dan perosotan. Bermain di sana memakai sedikit poin.',
+    'Ongkos naik Bus Sekolah juga memakai sedikit poin.',
+    'Poin tidak akan menjadi minus, jadi tenang saja.',
+    'Jangan lupa belajar dan kerjakan soal supaya poinmu cukup untuk ujian.' ], tip: 'Panduan ini bisa dibuka lagi di menu Pengaturan, tombol Lihat Panduan.' },
+];
+let GD = { i: 0, back: 'play' };
+function renderGuide() {
+  const p = GUIDE[GD.i], last = GD.i === GUIDE.length - 1;
+  $('#guideCard').innerHTML = `<div class="gh"><small>Panduan ${GD.i + 1} dari ${GUIDE.length}</small><button class="btn ghost gx" data-g="close" type="button">${GD.back === 'menu' ? 'Tutup' : 'Lewati'}</button></div>
+  <h2>${p.t}</h2><p class="lead">${p.lead}</p>
+  <ol class="gs">${p.s.map((x, i) => `<li><b>${i + 1}</b><span>${x}</span></li>`).join('')}</ol>${p.tip ? `<p class="lead" style="color:var(--purple-d)">Tips: ${p.tip}</p>` : ''}
+  <div class="gdots">${GUIDE.map((_, i) => `<i class="${i === GD.i ? 'on' : ''}"></i>`).join('')}</div>
+  <div class="gnav">${GD.i ? '<button class="btn ghost" data-g="prev" type="button">Sebelumnya</button>' : '<span></span>'}<button class="btn ${last ? 'gold' : 'alt'}" data-g="${last ? 'close' : 'next'}" type="button">${last ? (GD.back === 'menu' ? 'Selesai' : 'Mulai Main!') : 'Lanjut'}</button></div>`;
+  const c = $('#guideCard'); c.scrollTop = 0;
+}
+function openGuide(back) { GD.i = 0; GD.back = back || 'play'; setMode('guide'); $('#guide').hidden = false; renderGuide(); }
+function closeGuide() { $('#guide').hidden = true; G.guideSeen = true; save(); setMode(GD.back === 'menu' ? 'menu' : 'play'); }
+$('#guide').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (!b) return; sfx('tap'); const k = b.dataset.g; if (k === 'next') { GD.i++; renderGuide(); } else if (k === 'prev') { GD.i--; renderGuide(); } else closeGuide(); });
+
 })();
 </script>
 
