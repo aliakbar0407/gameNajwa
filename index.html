@@ -695,11 +695,11 @@ function turnTo(g, a, k) {
 }
 // ---------- karakter chibi halus
 const cgeo = {};
-const sphG = new THREE.SphereGeometry(1, 22, 16), cylG = new THREE.CylinderGeometry(1, 1, 1, 20), torG = new THREE.TorusGeometry(1, .16, 8, 24);
+const sphHi = new THREE.SphereGeometry(1, 22, 16), sphG = new THREE.SphereGeometry(1, 14, 10), sphLo = new THREE.SphereGeometry(1, 9, 6), cylG = new THREE.CylinderGeometry(1, 1, 1, 20), torG = new THREE.TorusGeometry(1, .16, 6, 16);
 const toonGrad = (() => { const t = new THREE.DataTexture(new Uint8Array([150, 195, 232, 255]), 4, 1, THREE.LuminanceFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 const cmats = {};
 const cm = (c, o) => { const k = c + (o ? JSON.stringify(o) : ''); return cmats[k] || (cmats[k] = new THREE.MeshToonMaterial(Object.assign({ color: soften(c), gradientMap: toonGrad }, o || {}))); };
-const ell = (par, rx, ry, rz, col, x, y, z, o) => { const m = new THREE.Mesh(sphG, cm(col, o)); m.scale.set(rx, ry, rz); m.position.set(x, y, z); par.add(m); return m; };
+const ell = (par, rx, ry, rz, col, x, y, z, o) => { const m = new THREE.Mesh(Math.max(rx, ry, rz) < .13 ? sphLo : sphG, cm(col, o)); m.scale.set(rx, ry, rz); m.position.set(x, y, z); par.add(m); return m; };
 const cyl = (par, rt, rb, h, col, x, y, z) => { const m = new THREE.Mesh(cyl2(rt, rb, h), cm(col)); m.position.set(x, y, z); par.add(m); return m; };
 function cyl2(rt, rb, h) { const k = 'c' + rt + '_' + rb + '_' + h; return cgeo[k] || (cgeo[k] = new THREE.CylinderGeometry(rt, rb, h, 22)); }
 function skirtGeo() {
@@ -712,6 +712,25 @@ function packGeo(w, h, d, r) {
   s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
   const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 3, curveSegments: 8 }); g.translate(0, 0, -d / 2); return cgeo[k] = g;
 }
+let NOBAKE = false;
+function bakeChar(g, parts) {
+  const keep = new Set(); for (const k in parts) if (parts[k] && parts[k].isMesh) keep.add(parts[k]);
+  const ok = m => m.isMesh && !keep.has(m) && m.material && m.material.type === 'MeshToonMaterial' && m.material.side === THREE.FrontSide && !m.material.transparent && m.material.emissive.getHex() === 0 && m.material.gradientMap === toonGrad && !m.isInstancedMesh;
+  const groups = [g, parts.legL, parts.legR, parts.armL, parts.armR, parts.head];
+  for (const grp of groups) {
+    if (!grp) continue; const src = grp.children.filter(ok); if (src.length < 3) continue;
+    const pos = [], nor = [], col = [];
+    for (const m of src) {
+      m.updateMatrix(); const gm = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()); gm.applyMatrix4(m.matrix);
+      const p = gm.attributes.position.array, n = gm.attributes.normal.array, c = m.material.color;
+      for (let i = 0; i < p.length; i++) { pos.push(p[i]); nor.push(n[i]); } for (let i = 0; i < p.length / 3; i++) col.push(c.r, c.g, c.b);
+      grp.remove(m); gm.dispose();
+    }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); bg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const mm = new THREE.Mesh(bg, BAKEMAT); grp.add(mm);
+  }
+}
+const BAKEMAT = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: toonGrad });
 function makeChar(p, s) {
   const g = new THREE.Group(), parts = {}, fem = !p.male, skin = p.skin;
   // kaki dan sepatu
@@ -771,7 +790,7 @@ function makeChar(p, s) {
   if (p.cap) { const c = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10, 0, 6.283, 0, 1.5), cm(p.cap)); c.scale.set(.5, .42, .48); c.position.set(0, .22, -.02); hd.add(c); ell(hd, .26, .03, .2, shade(p.cap, -.2), 0, .3, .45); }
   if (p.hat) { cyl(hd, .7, .7, .04, p.hat, 0, .36, 0); cyl(hd, .32, .34, .24, p.hat, 0, .5, 0); cyl(hd, .345, .345, .05, '#E8553E', 0, .4, 0); }
   const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = .03; sh.scale.set(.52, .52, .52); g.add(sh);
-  g.scale.setScalar(s || 1); g.userData.parts = parts; return g;
+  g.scale.setScalar(s || 1); g.userData.parts = parts; if (!NOBAKE) bakeChar(g, parts); return g;
 }
 function animChar(g, t, mv) {
   const p = g.userData.parts, a = mv ? Math.sin(t * 11) * .75 : 0;
@@ -1719,9 +1738,9 @@ function syncWorld(dt, fx_, fz_) {
   turnTo(pm, player.face, .25); animChar(pm, player.t, player.moving);
   for (const n of NPCS) {
     const d = Math.hypot(player.x - n.x, player.y - n.y); if (d < 3.4) turnTo(n.mesh, Math.atan2(player.x - n.x, player.y - n.y), .08);
-    n.mark.position.y = 2.05 + Math.sin(T * 4 + n.x) * .06; animChar(n.mesh, T, false);
+    n.mark.position.y = 2.05 + Math.sin(T * 4 + n.x) * .06; if (d > 15) { if (n.mesh.visible) { n.mesh.visible = false; n._cul = 1; } continue; } else if (n._cul) { n.mesh.visible = true; n._cul = 0; } animChar(n.mesh, T, false);
   }
-  for (const k of kids) { k.mesh.position.set(k.x, k.mv ? Math.abs(Math.cos(k.t * 11)) * .04 : 0, k.y); if (k.face != null) turnTo(k.mesh, k.face, .2); animChar(k.mesh, k.t, k.mv); }
+  for (const k of kids) { const kd = Math.hypot(player.x - k.x, player.y - k.y); if (kd > 15) { if (k.mesh.visible) { k.mesh.visible = false; k._cul = 1; } continue; } else if (k._cul) { k.mesh.visible = true; k._cul = 0; } k.mesh.position.set(k.x, k.mv ? Math.abs(Math.cos(k.t * 11)) * .04 : 0, k.y); if (k.face != null) turnTo(k.mesh, k.face, .2); animChar(k.mesh, k.t, k.mv); }
   W3.stars.forEach((m, i) => { const s = starSpots[i], vis = !!s && !G.got.includes(i); m.visible = vis; W3.starBlobs[i].visible = vis; if (vis) { m.position.set(s[0], .95 + Math.sin(T * 3 + i) * .1, s[1]); m.rotation.y = T * 1.7 + i; W3.starBlobs[i].position.set(s[0], .03, s[1]); } });
   for (const c of CHESTS) { const o = W3.chests[c.id]; o.lid.rotation.x += ((G.chests.includes(c.id) ? -1.9 : 0) - o.lid.rotation.x) * .15; }
   W3.drops.forEach((d, i) => { const ph = (T * .9 + i / 14) % 1, ang = i * 2.3 + T * .4, r = ph * .95; d.position.set(18 + Math.cos(ang) * r, 1.85 + Math.sin(ph * Math.PI) * 1.0 - ph * .6, 11 + Math.sin(ang) * r); });
@@ -2457,7 +2476,7 @@ function ensurePortrait() {
 }
 function portrait(pal) {
   try {
-    ensurePortrait(); if (pchar) pscene.remove(pchar); pchar = makeChar(pal, 1); pscene.add(pchar); pcam.position.set(0, 1.2, 2.55); pcam.lookAt(0, 1.17, 0);
+    ensurePortrait(); if (pchar) pscene.remove(pchar); NOBAKE = true; try { pchar = makeChar(pal, 1); } finally { NOBAKE = false; } pchar.traverse(o => { if (o.isMesh && (o.geometry === sphG || o.geometry === sphLo)) o.geometry = sphHi; }); pscene.add(pchar); pcam.position.set(0, 1.2, 2.55); pcam.lookAt(0, 1.17, 0);
     if (!TK.raf) { TK.last = performance.now(); TK.raf = requestAnimationFrame(portraitLoop); }
     portraitFrame(0);
   } catch (e) { window.__perr = String(e && e.stack || e); pctx.clearRect(0, 0, pcv.width, pcv.height); }
@@ -2633,7 +2652,7 @@ let glOK = false, last = 0, dragId = null, dragX = 0;
 function initRenderer() {
   try {
     renderer = new THREE.WebGLRenderer({ canvas: $('#gl'), antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     camera = new THREE.PerspectiveCamera(46, 1, .1, 220); rcam = new THREE.PerspectiveCamera(46, 1, .1, 60);
     buildWorld3D(); glOK = true; resize(); updCamera(0, player.x, player.y, true);
   } catch (e) { glOK = false; const n = $('#nogl'); if (n) n.hidden = false; console.error(e); }
@@ -2699,7 +2718,7 @@ const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => ({ G })); } catch (e) {}
 if (hot && hot.data && hot.data.G) { Object.assign(G, hot.data.G); pickStars(); updHud(); }
 
-window.__najwa = { room: () => room, exam: () => exam, DOORS, goRoom, enterRoom, goOut, getRoom, leaveRoomNow, dbg: o => { window.__dbgCam = o; }, camYaw: () => camYaw, glOK: () => glOK, AU, qz: () => QZ, m1: () => M1, m2: () => M2, G, NPCS, CHESTS, starSpots: () => starSpots, reach, isSolid, player, trees, setPos: (x, y) => { player.x = x; player.y = y; }, begin, interact, startQuiz, genQs, examQs, B, STN, NEED, mode: () => mode, startMini, tryExam, openMenu, setTab: t => { tab = t; renderMenu(); } };
+window.__najwa = { rdr: () => renderer, scn: () => scene, cam: () => camera, room: () => room, exam: () => exam, DOORS, goRoom, enterRoom, goOut, getRoom, leaveRoomNow, dbg: o => { window.__dbgCam = o; }, camYaw: () => camYaw, glOK: () => glOK, AU, qz: () => QZ, m1: () => M1, m2: () => M2, G, NPCS, CHESTS, starSpots: () => starSpots, reach, isSolid, player, trees, setPos: (x, y) => { player.x = x; player.y = y; }, begin, interact, startQuiz, genQs, examQs, B, STN, NEED, mode: () => mode, startMini, tryExam, openMenu, setTab: t => { tab = t; renderMenu(); } };
 })();
 </script>
 
