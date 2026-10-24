@@ -1180,7 +1180,8 @@ function award(stn, amt) {
   G.caps[k] = cur + add; G.poin += add; updHud(); save(); return add;
 }
 function stnDone(k) { return { learn: !!G.caps[G.cls + ':' + k + ':learn'], soal: !!(G.caps[G.cls + ':' + k + ':quiz'] || stnCap(k) > 0) }; }
-function missingReq() { const m = []; for (const k of Object.keys(STN)) { const d = stnDone(k); if (!d.learn) m.push('belajar di ' + STN[k].place); if (!d.soal) m.push('soal di ' + STN[k].place); } return m; }
+const EXAMST = ['kelas', 'kantin', 'perpus', 'lab', 'taman', 'uks', 'lapangan'];
+function missingReq() { const m = []; for (const k of EXAMST) { const d = stnDone(k); if (!d.learn) m.push('belajar di ' + STN[k].place); if (!d.soal) m.push('soal di ' + STN[k].place); } return m; }
 function charge(c, label) { const p = Math.min(c, G.poin); if (p <= 0) return; G.poin -= p; updHud(); save(); toast(label + ' -' + p + ' poin', 2600); }
 function stnCap(stn) { return G.caps[G.cls + ':' + stn] || 0; }
 
@@ -1369,7 +1370,7 @@ function renderMenu() {
     for (const s of starSpots.map((p, i) => ({ p, i })).filter(o => !G.got.includes(o.i))) { c.fillStyle = '#F6B92B'; c.beginPath(); c.arc(s.p[0] * U * sx, s.p[1] * U * sy, 4, 0, 6.3); c.fill(); }
     c.fillStyle = '#F063B4'; c.beginPath(); c.arc(ppos().x * U * sx, ppos().y * U * sy, 9, 0, 6.3); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke();
   } else if (tab === 'tugas') {
-    const rows = Object.keys(STN).map(k => { const cap = stnCap(k), learn = G.caps[G.cls + ':' + k + ':learn']; return `<div class="row ${cap >= CAP ? 'done' : ''}"><span>${STN[k].place}<br><small>${STN[k].title} - ${learn ? 'belajar ✓' : 'belum belajar'}, ${(G.caps[G.cls + ':' + k + ':quiz'] || cap > 0) ? 'soal ✓' : 'belum soal'}</small></span><span>${cap}/${CAP}</span><div class="bar"><i style="width:${cap / CAP * 100}%"></i></div></div>`; }).join('');
+    const rows = EXAMST.concat(STN.ngaji ? ['ngaji'] : []).map(k => { const cap = stnCap(k), learn = G.caps[G.cls + ':' + k + ':learn']; return `<div class="row ${cap >= CAP ? 'done' : ''}"><span>${STN[k].place}<br><small>${STN[k].title}${k === 'ngaji' ? ' - tambahan poin' : ' - ' + (learn ? 'belajar ✓' : 'belum belajar') + ', ' + ((G.caps[G.cls + ':' + k + ':quiz'] || cap > 0) ? 'soal ✓' : 'belum soal')}</small></span><span>${cap}/${CAP}</span><div class="bar"><i style="width:${cap / CAP * 100}%"></i></div></div>`; }).join('');
     body.innerHTML = `<div class="rows">${rows}<div class="row"><span>Bintang</span><span>${G.got.length}/${starSpots.length}</span></div><div class="row"><span>Peti harta</span><span>${G.chests.length}/${CHESTS.length}</span></div></div><p class="sub">${missingReq().length ? 'Syarat guru: masih ' + missingReq().length + ' tugas lagi. ' : 'Semua guru sudah dikunjungi. '}Ujian Kelas ${G.cls}: ${G.poin} dari ${NEED[G.cls - 1]} poin</p>`;
   } else {
     const tiles = [1, 2, 3, 4, 5, 6].map(n => { const passed = G.passed.includes(n), cur = n === G.cls && !G.finished, lock = n > G.cls; return `<div class="ct ${passed ? 'passed' : cur ? 'cur' : lock ? 'lock' : ''}"><svg width="44" height="40" viewBox="0 0 44 40" aria-hidden="true"><path d="M4 18 22 4l18 14z" fill="${lock ? '#9C93B5' : '#4F7FD6'}"/><rect x="7" y="18" width="30" height="20" fill="${lock ? '#CFC8E0' : '#F6EBD0'}"/><rect x="18" y="26" width="8" height="12" fill="#8A5628"/>${lock ? '<rect x="15" y="16" width="14" height="12" rx="2" fill="#2A2147"/><path d="M18 16v-3a4 4 0 018 0v3" fill="none" stroke="#2A2147" stroke-width="2.4"/>' : ''}${passed ? '<path d="M22 2l2.2 4.6 5 .6-3.7 3.4 1 5L22 13.2 17.5 15.6l1-5-3.7-3.4 5-.6z" fill="#F6B92B" stroke="#C98B0A" stroke-width="1.2"/>' : ''}</svg>Kelas ${n}</div>`; }).join('');
